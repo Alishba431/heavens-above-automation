@@ -1,0 +1,61 @@
+name: PR checks · Code Review Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  lint-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run ESLint (if present)
+        run: |
+          if jq -r '.devDependencies.eslint // .dependencies.eslint // empty' package.json | grep -q .; then
+            npm run lint
+          else
+            echo "No ESLint detected — skipping lint."
+          fi
+
+      - name: Run npm audit
+        run: |
+          npm audit --json > npm-audit.json || true
+      - name: Upload audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit
+          path: npm-audit.json
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Run CodeQL
+        uses: github/codeql-action/analyze@v2

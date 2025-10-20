@@ -1,0 +1,41 @@
+name: Docs → GitHub Pages
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'public/**'
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Build docs (if build script exists)
+        run: |
+          if jq -r '.scripts.docs // empty' package.json | grep -q .; then
+            npm ci
+            npm run docs
+          else
+            echo "No docs build step — assuming docs/ or public/ is ready."
+          fi
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public

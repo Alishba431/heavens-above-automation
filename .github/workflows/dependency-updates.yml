@@ -1,0 +1,41 @@
+name: Dependency update (automated)
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Mondays 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Update dependencies (npm-check-updates)
+        run: |
+          npm install -g npm-check-updates
+          ncu -u
+          npm install
+
+      - name: Commit changes and open PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(deps): bump dependencies (automated)"
+          branch: deps/automated-update-${{ github.run_id }}
+          title: "Automated dependency update"
+          body: |
+            Automated updates via GitHub Actions.
+          labels: automated, dependencies

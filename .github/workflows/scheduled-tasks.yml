@@ -1,0 +1,49 @@
+name: Scheduled Scrape & Commit
+
+on:
+  schedule:
+    - cron: '0 2 * * 0' # every Sunday at 02:00 UTC — adjust as needed (use UTC)
+  workflow_dispatch: # allows manual triggering from Actions UI
+
+permissions:
+  contents: write
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run scraper
+        env:
+          NODE_ENV: production
+        run: |
+          # Run the script that scrapes and writes to public/data
+          node run.js
+
+      - name: Commit any changes
+        env:
+          GIT_AUTHOR_NAME: "github-actions[bot]"
+          GIT_AUTHOR_EMAIL: "github-actions[bot]@users.noreply.github.com"
+        run: |
+          git config user.name "$GIT_AUTHOR_NAME"
+          git config user.email "$GIT_AUTHOR_EMAIL"
+          git add public || true
+          git status --porcelain
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore: scheduled scrape update [skip ci]" || true
+            git push https://x-access-token:${{ secrets.PAT_FOR_ACTIONS }}@github.com/${{ github.repository }} HEAD:main
+          else
+            echo "No changes to commit."
+          fi

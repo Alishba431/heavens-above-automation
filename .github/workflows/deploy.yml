@@ -1,0 +1,56 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build (prepare public/)
+        run: |
+          # If your repo already uses public/ as final artifact, copy/prepare into 'public'
+          # If you have a custom build step, run it here, e.g. npm run build
+          if [ -f package.json ] && jq -r '.scripts.build // empty' package.json | grep -q .; then
+            npm run build
+          else
+            echo "No build script — assuming public/ already contains site files."
+          fi
+
+      - name: Run tests
+        run: |
+          if jq -r '.scripts.test // empty' package.json | grep -q .; then
+            npm test || true
+          else
+            echo "No test script found — skipping tests."
+          fi
+
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: public
+
+  deploy:
+    needs: build-test-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v1

@@ -4,11 +4,15 @@
   "private": true,
   "description": "Scripts for scraping the Heavens Above website.",
   "main": "run.js",
+  
+  "type": "module",
   "scripts": {
-    "start": "node run.js"
+    "start": "node run.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
+    "lint": "^0.8.19",
     "request": "^2.88.2"
   },
   "repository": {
@@ -27,5 +31,9 @@
   "homepage": "https://github.com/PKUPI/heavens-above#readme",
   "engines": {
     "node": ">=12.10.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "eslint": "^9.38.0"
   }
 }
